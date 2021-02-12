@@ -4,5 +4,5 @@ package database
 
 type UserLine struct {
 	LineUID string `json:"LineId"`
-	UID     string `json:"UserID"`
+	//	UID     string  `json:"UserID"`
 }

@@ -8,6 +8,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var dbdata []UserLine
+
 //DBCon :
 func DBCon() *sql.DB {
 	conndb := "user=postgres dbname=postgres password=130242 host=127.0.0.1 sslmode=disable"
@@ -28,6 +30,7 @@ func DBCon() *sql.DB {
 	return db
 }
 
+// FetchData :
 func FetchData() []UserLine {
 	db := DBCon()
 	source := UserLine{}
@@ -48,7 +51,8 @@ func FetchData() []UserLine {
 		data = append(data, source)
 	}
 
-	fmt.Printf("555 %+v\n", data)
+	log.Printf("555 %+v\n", data)
+	//dbdata := data
 	//fmt.Printf("666 %+v\n", source)
 	defer db.Close()
 
