@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+
+	_ "github.com/lib/pq"
 )
 
-// DBCon ;
-
+//DBCon :
 func DBCon() *sql.DB {
 	conndb := "user=postgres dbname=postgres password=130242 host=127.0.0.1 sslmode=disable"
 	db, err := sql.Open("postgres", conndb)
@@ -27,30 +28,28 @@ func DBCon() *sql.DB {
 	return db
 }
 
-func FetchData() []LineID {
+func FetchData() []UserLine {
 	db := DBCon()
-	source := LineID{}
-	var data []LineID
+	source := UserLine{}
+	var data []UserLine
 
 	// WHERE return user_id
-	rows, err := db.Query("SELECT  line_id, user_id FROM test")
+	rows, err := db.Query("SELECT  line_id FROM test")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&source.LineUID, &source.UID)
-
+		err := rows.Scan(&source.LineUID)
 		if err != nil {
 			fmt.Print(err)
 		}
-
 		data = append(data, source)
 	}
 
-	fmt.Printf("%+v\n", data)
-	fmt.Printf("%+v\n", source)
+	fmt.Printf("555 %+v\n", data)
+	//fmt.Printf("666 %+v\n", source)
 	defer db.Close()
 
 	return data

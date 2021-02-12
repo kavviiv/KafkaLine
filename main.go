@@ -1,6 +1,8 @@
 package main
 
 import (
+	database "KafkaLine/Database"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +18,10 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	a := Database.FetchData()
+	db := database.FetchData()
+	var data []database.UserLine
+	fmt.Println("data = ", data)
+	fmt.Println("data = ", db)
 
 	client := &http.Client{}
 	bot, err := linebot.New(os.Getenv("CHANNEL_SECRET"), os.Getenv("CHANNEL_TOKEN"), linebot.WithHTTPClient(client))
@@ -39,13 +44,37 @@ func main() {
 
 		for _, event := range events {
 			if event.Type == linebot.EventTypeFollow {
+				log.Println("user add bot")
+				a := event.Source.UserID
+				for _, g := range data {
+					if g.LineUID == a {
+						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
+							log.Print(err)
+						}
+					}
+					//    if strings.Trim(g.LineUID, g.LineUID) != a {
+					// 		if _, err := bot.PushMessage(a, linebot.NewTextMessage("you're not connected to our service")).Do(); err != nil {
+					// 			log.Print(err)
+					// 		}
+					// 	}
 
+				}
+				log.Println("a=", a)
+				log.Println("db=", db)
+				log.Println("X =", data)
+
+				// if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
+				// 	log.Print(err)
+				// }
+
+			}
+			if event.Type == linebot.EventTypeUnfollow {
+				log.Println("user blcok bot")
 				a := event.Source.UserID
 				log.Println(a)
+				//log.Println(db)
 
-				log.Println("user add bot")
-
-				if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
+				if _, err := bot.PushMessage(a, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
 					log.Print(err)
 				}
 
