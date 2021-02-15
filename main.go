@@ -2,6 +2,9 @@ package main
 
 import (
 	database "KafkaLine/Database"
+	kafka "KafkaLine/Kafka"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,22 +15,33 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-func contains(db []string, str string) bool {
-	for _, v := range db {
-		if v == str {
-			return true
-		}
-	}
+// func contains(db []string, str string) bool {
+// 	for _, v := range db {
+// 		if v == str {
+// 			return true
+// 		}
+// 	}
 
-	return false
+// 	return false
 
-}
+// }
+var status string
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.
+			Fatal("Error loading .env file")
 	}
+
+	kafkaHost := os.Getenv("KAFKA_HOST")
+	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+
+	// a := kafka.Consumer()
+	// log.Println(a)
+	kafka := kafka.NewKafkaReader(kafkaHost, kafkaTopic)
+	CLUID := kafka.Consumer()
+	fmt.Println("Kafka Line Id", CLUID.LineID)
 
 	database.FetchData()
 
@@ -50,80 +64,96 @@ func main() {
 		if err != nil {
 			log.Fatal("Line bot client ERROR: ", err)
 		}
+
 		//var tata []string
-
 		///tata = append(tata)
-
 		//var data []database.UserLine
+		//	CLUID := kafka.Consumer()
 		db := database.FetchData()
 		fmt.Println("db = ", db)
 		for _, event := range events {
+			if linebot.AccountLinkResult(CLUID.LineID) == linebot.AccountLinkResultOK {
+				log.Println("Account linked")
+			}
+
 			if event.Type == linebot.EventTypeFollow {
 				a := event.Source.UserID
 				log.Println("user add bot")
 				for _, g := range db {
 
 					if g.LineUID == event.Source.UserID && g.LineUID == a {
+						status = "connect"
+						log.Println(status)
 						log.Println("Equals")
-						//linebot.NewTextMessage("555")
 						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
 							log.Print(err)
+							break
+						}
+						for true {
+							dataKafka := kafka.Consumer()
+							if dataKafka == nil {
+								fmt.Println("Null")
+								continue
+							}
+							if dataKafka != nil {
+								if _, err := bot.PushMessage(CLUID.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดตรวจสภาพรถแล้ว")).Do(); err != nil {
+									log.Print(err)
+								}
+								break
+							}
+						}
+
+						if g.LineUID != event.Source.UserID {
+							if _, err := bot.PushMessage(a, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
+								log.Print(err)
+							}
+							break
 						}
 
 					}
 
-					if g.LineUID != event.Source.UserID {
-						log.Println("Not Equals")
-						if _, err := bot.PushMessage(a, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
-							log.Print(err)
-						}
-
+					type Payload struct {
+						To string `json:"to"`
 					}
-					// if g.LineUID == string(a) {
+					type Messages struct {
+						Type string `json:"type"`
+						Text string `json:"text"`
+					}
 
-					// }
-					// if g.LineUID != string(a) {
-					// 	if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
-					// 		log.Print(err)
-					// 	}
-					// }
+					data := Payload{
+						CLUID.CarID,
+						// fill struct
+					}
+					payloadBytes, err := json.Marshal(data)
+					if err != nil {
+						// handle err
+					}
+					body := bytes.NewReader(payloadBytes)
+
+					req, err := http.NewRequest("POST", "https://api.line.me/v2/bot/message/push", body)
+					if err != nil {
+						// handle err
+					}
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("Authorization", "Bearer"+os.Getenv("CHANNEL_TOKEN"))
+
+					resp, err := http.DefaultClient.Do(req)
+					if err != nil {
+						// handle err
+					}
+					defer resp.Body.Close()
+
+					log.Println("a=", a)
+
 				}
 
-				// for _, g := range data {
-				// 	if g.LineUID == a {
-				// 		if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
-				// 			log.Print(err)
-				// 		}
-				// 	}
-
-				// 	if g.LineUID != a {
-				// 		if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
-				// 			log.Print(err)
-				// 		}
-				// 	}
-
-				//	}
-
-				log.Println("a=", a)
-				//	log.Fatalln(db)
-				//log.Println("X =", data)
-
-				// if event.Type == linebot.EventTypeUnfollow {
-				// 	log.Println("user blcok bot")
-				// 	a := event.Source.UserID
-				// 	if _, err := bot.PushMessage(a, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-				// 		log.Print(err)
-				// 	}
-				// }
-
-			}
-
-			if event.Type == linebot.EventTypeUnfollow {
-				log.Println("user blcok bot")
-
-				if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-					log.Print(err)
+				if event.Type == linebot.EventTypeUnfollow {
+					log.Println("user blcok bot")
+					if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+						log.Print(err)
+					}
 				}
+
 			}
 
 		}

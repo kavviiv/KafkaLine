@@ -58,3 +58,29 @@ func FetchData() []UserLine {
 
 	return data
 }
+
+func FetchData2() []Data {
+	db := DBCon()
+	defer db.Close()
+
+	var data []Data
+	dataList := Data{}
+
+	// WHERE return data at user_id
+	rows, err := db.Query("SELECT user_id, line_id, car_id FROM test")
+	if err != nil {
+		log.Fatalln("Error database query in Fetch Data")
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&dataList.UserID, &dataList.LineID, &dataList.CarID)
+		if err != nil {
+			fmt.Println("Error row scan in Fetch Data")
+			fmt.Print(err)
+		}
+		data = append(data, dataList)
+	}
+	return data
+}
