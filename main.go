@@ -3,8 +3,6 @@ package main
 import (
 	database "KafkaLine/Database"
 	kafka "KafkaLine/Kafka"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -60,47 +58,24 @@ func main() {
 	//ID := "Uf6c3aa4a9460f9438f2ab25aea33ab67"
 
 	e.POST("/linemessage", func(c echo.Context) error {
+		//log.Println("here")
 		events, err := bot.ParseRequest(c.Request())
 		if err != nil {
 			log.Fatal("Line bot client ERROR: ", err)
 		}
-
-		//var tata []string
-		///tata = append(tata)
-		//var data []database.UserLine
-		//	CLUID := kafka.Consumer()
 		db := database.FetchData()
 		fmt.Println("db = ", db)
 		for _, event := range events {
-			if linebot.AccountLinkResult(CLUID.LineID) == linebot.AccountLinkResultOK {
-				log.Println("Account linked")
-			}
-
 			if event.Type == linebot.EventTypeFollow {
 				a := event.Source.UserID
 				log.Println("user add bot")
 				for _, g := range db {
-
-					if g.LineUID == event.Source.UserID && g.LineUID == a {
+					if g.LineUID == event.Source.UserID {
 						status = "connect"
-						log.Println(status)
 						log.Println("Equals")
 						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
 							log.Print(err)
 							break
-						}
-						for true {
-							dataKafka := kafka.Consumer()
-							if dataKafka == nil {
-								fmt.Println("Null")
-								continue
-							}
-							if dataKafka != nil {
-								if _, err := bot.PushMessage(CLUID.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดตรวจสภาพรถแล้ว")).Do(); err != nil {
-									log.Print(err)
-								}
-								break
-							}
 						}
 
 						if g.LineUID != event.Source.UserID {
@@ -111,37 +86,6 @@ func main() {
 						}
 
 					}
-
-					type Payload struct {
-						To string `json:"to"`
-					}
-					type Messages struct {
-						Type string `json:"type"`
-						Text string `json:"text"`
-					}
-
-					data := Payload{
-						CLUID.CarID,
-						// fill struct
-					}
-					payloadBytes, err := json.Marshal(data)
-					if err != nil {
-						// handle err
-					}
-					body := bytes.NewReader(payloadBytes)
-
-					req, err := http.NewRequest("POST", "https://api.line.me/v2/bot/message/push", body)
-					if err != nil {
-						// handle err
-					}
-					req.Header.Set("Content-Type", "application/json")
-					req.Header.Set("Authorization", "Bearer"+os.Getenv("CHANNEL_TOKEN"))
-
-					resp, err := http.DefaultClient.Do(req)
-					if err != nil {
-						// handle err
-					}
-					defer resp.Body.Close()
 
 					log.Println("a=", a)
 
@@ -157,6 +101,7 @@ func main() {
 			}
 
 		}
+
 		return c.String(http.StatusOK, "OK!")
 	})
 
