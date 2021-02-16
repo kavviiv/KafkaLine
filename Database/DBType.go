@@ -3,7 +3,8 @@ package database
 // Line ;
 
 type UserLine struct {
-	LineUID string `json:"LineId"`
+	LineUID   string  `json:"LineId"`
+	BotStatus *string `json:"BotStatus"`
 	//	UID     string  `json:"UserID"`
 }
 

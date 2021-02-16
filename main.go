@@ -31,13 +31,37 @@ func main() {
 	// a := kafka.Consumer()
 	// log.Println(a)
 	kafka := kafka.NewKafkaReader(kafkaHost, kafkaTopic)
-	CLUID := kafka.Consumer()
-	fmt.Println("Kafka Line Id", CLUID.LineID)
+	//CLUID := kafka.Consumer()
+	dataKafka := kafka.Consumer()
+	db := database.FetchData()
+
+	//fmt.Println("Kafka Line Id", CLUID.LineID)
 
 	client := &http.Client{}
 	bot, err := linebot.New(os.Getenv("CHANNEL_SECRET"), os.Getenv("CHANNEL_TOKEN"), linebot.WithHTTPClient(client))
 	if err != nil {
 		log.Fatal("Line bot client ERROR: ", err)
+	}
+
+	for _, em := range db {
+		if em.BotStatus == nil {
+		}
+
+		if em.BotStatus != nil {
+			for *em.BotStatus == "connect" && em.LineUID == dataKafka.LineID {
+				if dataKafka == nil {
+					continue
+				}
+				if dataKafka != nil {
+					if _, err := bot.PushMessage(dataKafka.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+						log.Print(err)
+						break
+					}
+					break
+				}
+
+			}
+		}
 	}
 
 	e := echo.New()
@@ -47,69 +71,86 @@ func main() {
 	})
 
 	e.POST("/linemessage", func(c echo.Context) error {
+		//log.Println("here")
 		events, err := bot.ParseRequest(c.Request())
 		if err != nil {
 			log.Fatal("Line bot client ERROR: ", err)
 		}
-		db := database.FetchData()
+
 		fmt.Println("db = ", db)
 		for _, event := range events {
-			log.Println("start Event")
 			if event.Type == linebot.EventTypeFollow {
+				a := event.Source.UserID
 				log.Println("user add bot")
 				for _, g := range db {
 					if g.LineUID == event.Source.UserID {
 						status = "connect"
 						log.Println("Equals")
-						if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
-							log.Print(err)
+						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err == nil {
+							//log.Print(err)
+							dbc := database.DBCon()
+							sqlStatement := `UPDATE test SET bot_status = $1 WHERE line_id = $2`
+							_, err = dbc.Exec(sqlStatement, status, a)
+							if err != nil {
+								//w.WriteHeader(http.StatusBadRequest)
+								panic(err)
+							}
 							break
 						}
-						// for i := 0; i <= 4; i++ {
-
-						// 	dataKafka := kafka.Consumer()
-
-						// 	if dataKafka == nil {
-						// 		fmt.Println("Null")
-						// 		continue
-						// 	}
-						// 	if i == 0 {
-						// 		log.Println("Kafka 0 =", dataKafka)
-						// 		log.Println(i)
-						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(" bitch")).Do(); err != nil {
-						// 			log.Print(err)
-						// 		}
-						// 	}
-						// 	if i == 2 {
-						// 		log.Println("Kafka 2 =", dataKafka)
-						// 		log.Println(i)
-						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("ye bitch")).Do(); err != nil {
-						// 			log.Print(err)
-						// 		}
-						// 	}
-						// 	if i == 4 {
-						// 		log.Println("Kafka 4 =", dataKafka)
-						// 		log.Println(i)
-						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(" bitch")).Do(); err != nil {
-						// 			log.Print(err)
-						// 		}
-						// 	}
-						// 	log.Println("index ", i)
-						// 	log.Println("------------------------------------------------------------------")
-						// }
 
 						if g.LineUID != event.Source.UserID {
+							status = "disconnect"
 							if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
-								log.Print(err)
+								//log.Print(err)
+								dbc := database.DBCon()
+								sqlStatement := `UPDATE test SET bot_status = $1 WHERE line_id = $2`
+								_, err = dbc.Exec(sqlStatement, status, event.Source.UserID)
+								if err != nil {
+									//w.WriteHeader(http.StatusBadRequest)
+									panic(err)
+								}
 							}
 							break
 						}
 
 					}
 
-					log.Println("Follower UserID = ", event.Source.UserID)
+					log.Println("a=", a)
 
 				}
+				// for _, em := range db {
+				// 	for em.BotStatus == "Connect" && em.LineUID == a {
+				// 		dataKafka := kafka.Consumer()
+				// 		if dataKafka == nil {
+				// 			continue
+				// 		}
+				// 		if dataKafka != nil {
+				// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+				// 				log.Print(err)
+				// 				break
+				// 			}
+				// 			break
+				// 		}
+
+				// 	}
+				// }
+				//for  == "Connect" {
+				// dataKafka := kafka.Consumer()
+
+				// if dataKafka == nil {
+				// 	continue
+				// }
+
+				// if dataKafka != nil {
+				// 	if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+				// 		log.Print(err)
+				// 		break
+				// 	}
+				// 	break
+
+				// }
+
+				//	}
 
 				if event.Type == linebot.EventTypeUnfollow {
 					log.Println("user blcok bot")
@@ -119,106 +160,98 @@ func main() {
 				}
 
 			}
-			// //sendMessages()
-			// if event.Type == linebot.EventType(linebot.AccountLinkResultOK) {
+			// for _, em := range db {
+			// 	if em.BotStatus == nil {
+			// 	}
 
-			// 	for i := 0; i <= 4; i++ {
+			// 	if em.BotStatus != nil {
+			// 		for *em.BotStatus == "connect" && em.LineUID == event.Source.UserID {
 
-			// 		dataKafka := kafka.Consumer()
+			// 			dataKafka := kafka.Consumer()
+			// 			if dataKafka == nil {
+			// 				continue
+			// 			}
+			// 			if dataKafka != nil {
+			// 				if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+			// 					log.Print(err)
+			// 					break
+			// 				}
+			// 				break
+			// 			}
 
+			// 		}
+			// 	}
+			// }
+
+			// if event.AccountLink.Nonce == "ok" {
+			// 	//if event.AccountLink.Result == "ok" {
+			// 	for true {
 			// 		if dataKafka == nil {
-			// 			fmt.Println("Null")
 			// 			continue
 			// 		}
-			// 		if i == 0 {
-			// 			log.Println("Kafka 0 =", dataKafka)
-			// 			log.Println(i)
-			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+			// 		if dataKafka != nil {
+			// 			if _, err := bot.PushMessage(dataKafka.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
 			// 				log.Print(err)
+			// 				break
 			// 			}
+			// 			break
 			// 		}
-			// 		if i == 2 {
-			// 			log.Println("Kafka 2 =", dataKafka)
-			// 			log.Println(i)
-			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-			// 				log.Print(err)
-			// 			}
-			// 		}
-			// 		if i == 4 {
-			// 			log.Println("Kafka 4 =", dataKafka)
-			// 			log.Println(i)
-			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-			// 				log.Print(err)
-			// 			}
-			// 		}
-			// 		log.Println("index ", i)
-			// 		log.Println("------------------------------------------------------------------")
-			// 	}
-			// 	// if linebot.AccountLinkResult == linebot.AccountLinkResultOK {
+			// 		//}
 
+			// 	}
+
+			// 	// for _, em := range db {
+			// 	// 	if em.BotStatus == nil {
+			// 	// 	}
+
+			// 	// 	if em.BotStatus != nil {
+			// 	// 		for *em.BotStatus == "connect" && em.LineUID == dataKafka.LineID {
+
+			// 	// 			if dataKafka == nil {
+			// 	// 				continue
+			// 	// 			}
+			// 	// 			if dataKafka != nil {
+			// 	// 				if _, err := bot.PushMessage(dataKafka.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+			// 	// 					log.Print(err)
+			// 	// 					break
+			// 	// 				}
+			// 	// 				break
+			// 	// 			}
+
+			// 	// 		}
+			// 	// 	}
 			// 	// }
 
 			// }
 
 		}
-		if status == "connect" {
-			for i := 0; i <= 4; i++ {
+		//		dataKafka := kafka.Consumer()
 
-				dataKafka := kafka.Consumer()
+		for _, em := range db {
+			if em.BotStatus == nil {
+			}
 
-				if dataKafka == nil {
-					fmt.Println("Null")
-					continue
-				}
-				if i == 0 {
-					log.Println("Kafka 0 =", dataKafka)
-					log.Println(i)
-					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-						log.Print(err)
+			if em.BotStatus != nil {
+				for *em.BotStatus == "connect" && em.LineUID == dataKafka.LineID {
+
+					if dataKafka == nil {
+						continue
 					}
-				}
-				if i == 2 {
-					log.Println("Kafka 2 =", dataKafka)
-					log.Println(i)
-					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-						log.Print(err)
+					if dataKafka != nil {
+						if _, err := bot.PushMessage(dataKafka.LineID, linebot.NewTextMessage("รถหมายเลขทะเบียน "+dataKafka.CarID+" ถึงกำหนดเวลาตรวจสภาพรถแล้ว")).Do(); err != nil {
+							log.Print(err)
+							break
+						}
+						break
 					}
+
 				}
-				if i == 4 {
-					log.Println("Kafka 4 =", dataKafka)
-					log.Println(i)
-					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
-						log.Print(err)
-					}
-				}
-				log.Println("index ", i)
-				log.Println("------------------------------------------------------------------")
 			}
 		}
-		// for linebot.AccountLinkResultOK == "OK" {
-		// 	log.Println("hereh")
-
-		// 	for {
-		// 		dataKafka := kafka.Consumer()
-		// 		if dataKafka == nil {
-		// 			fmt.Println("Null")
-		// 			continue
-		// 		}
-		// 		if dataKafka != nil {
-		// 			log.Println("4556")
-		// 			if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage(dataKafka.CarID)).Do(); err != nil {
-		// 				log.Print(err)
-		// 			}
-		// 			break
-
-		// 		}
-		// 	}
-
-		// }
 
 		return c.String(http.StatusOK, "OK!")
 	})
 
-	e.Logger.Fatal(e.Start(":9090"))
+	e.Logger.Fatal(e.Start("127.0.0.1:9090"))
 
 }

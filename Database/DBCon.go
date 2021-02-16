@@ -37,14 +37,14 @@ func FetchData() []UserLine {
 	var data []UserLine
 
 	// WHERE return user_id
-	rows, err := db.Query("SELECT  line_id FROM test")
+	rows, err := db.Query("SELECT  line_id, bot_status FROM test")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&source.LineUID)
+		err := rows.Scan(&source.LineUID, &source.BotStatus)
 		if err != nil {
 			fmt.Print(err)
 		}
