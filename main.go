@@ -3,6 +3,8 @@ package main
 import (
 	database "KafkaLine/Database"
 	kafka "KafkaLine/Kafka"
+
+	//kafka "KafkaLine/Kafka"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,16 +15,6 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-// func contains(db []string, str string) bool {
-// 	for _, v := range db {
-// 		if v == str {
-// 			return true
-// 		}
-// 	}
-
-// 	return false
-
-// }
 var status string
 
 func main() {
@@ -31,6 +23,7 @@ func main() {
 		log.
 			Fatal("Error loading .env file")
 	}
+	database.FetchData()
 
 	kafkaHost := os.Getenv("KAFKA_HOST")
 	kafkaTopic := os.Getenv("KAFKA_TOPIC")
@@ -40,8 +33,6 @@ func main() {
 	kafka := kafka.NewKafkaReader(kafkaHost, kafkaTopic)
 	CLUID := kafka.Consumer()
 	fmt.Println("Kafka Line Id", CLUID.LineID)
-
-	database.FetchData()
 
 	client := &http.Client{}
 	bot, err := linebot.New(os.Getenv("CHANNEL_SECRET"), os.Getenv("CHANNEL_TOKEN"), linebot.WithHTTPClient(client))
@@ -55,10 +46,7 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
-	//ID := "Uf6c3aa4a9460f9438f2ab25aea33ab67"
-
 	e.POST("/linemessage", func(c echo.Context) error {
-		//log.Println("here")
 		events, err := bot.ParseRequest(c.Request())
 		if err != nil {
 			log.Fatal("Line bot client ERROR: ", err)
@@ -66,20 +54,52 @@ func main() {
 		db := database.FetchData()
 		fmt.Println("db = ", db)
 		for _, event := range events {
+			log.Println("start Event")
 			if event.Type == linebot.EventTypeFollow {
-				a := event.Source.UserID
 				log.Println("user add bot")
 				for _, g := range db {
 					if g.LineUID == event.Source.UserID {
 						status = "connect"
 						log.Println("Equals")
-						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
+						if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Welcome to our service")).Do(); err != nil {
 							log.Print(err)
 							break
 						}
+						// for i := 0; i <= 4; i++ {
+
+						// 	dataKafka := kafka.Consumer()
+
+						// 	if dataKafka == nil {
+						// 		fmt.Println("Null")
+						// 		continue
+						// 	}
+						// 	if i == 0 {
+						// 		log.Println("Kafka 0 =", dataKafka)
+						// 		log.Println(i)
+						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(" bitch")).Do(); err != nil {
+						// 			log.Print(err)
+						// 		}
+						// 	}
+						// 	if i == 2 {
+						// 		log.Println("Kafka 2 =", dataKafka)
+						// 		log.Println(i)
+						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("ye bitch")).Do(); err != nil {
+						// 			log.Print(err)
+						// 		}
+						// 	}
+						// 	if i == 4 {
+						// 		log.Println("Kafka 4 =", dataKafka)
+						// 		log.Println(i)
+						// 		if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(" bitch")).Do(); err != nil {
+						// 			log.Print(err)
+						// 		}
+						// 	}
+						// 	log.Println("index ", i)
+						// 	log.Println("------------------------------------------------------------------")
+						// }
 
 						if g.LineUID != event.Source.UserID {
-							if _, err := bot.PushMessage(a, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
+							if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
 								log.Print(err)
 							}
 							break
@@ -87,7 +107,7 @@ func main() {
 
 					}
 
-					log.Println("a=", a)
+					log.Println("Follower UserID = ", event.Source.UserID)
 
 				}
 
@@ -99,8 +119,102 @@ func main() {
 				}
 
 			}
+			// //sendMessages()
+			// if event.Type == linebot.EventType(linebot.AccountLinkResultOK) {
+
+			// 	for i := 0; i <= 4; i++ {
+
+			// 		dataKafka := kafka.Consumer()
+
+			// 		if dataKafka == nil {
+			// 			fmt.Println("Null")
+			// 			continue
+			// 		}
+			// 		if i == 0 {
+			// 			log.Println("Kafka 0 =", dataKafka)
+			// 			log.Println(i)
+			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+			// 				log.Print(err)
+			// 			}
+			// 		}
+			// 		if i == 2 {
+			// 			log.Println("Kafka 2 =", dataKafka)
+			// 			log.Println(i)
+			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+			// 				log.Print(err)
+			// 			}
+			// 		}
+			// 		if i == 4 {
+			// 			log.Println("Kafka 4 =", dataKafka)
+			// 			log.Println(i)
+			// 			if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+			// 				log.Print(err)
+			// 			}
+			// 		}
+			// 		log.Println("index ", i)
+			// 		log.Println("------------------------------------------------------------------")
+			// 	}
+			// 	// if linebot.AccountLinkResult == linebot.AccountLinkResultOK {
+
+			// 	// }
+
+			// }
 
 		}
+		if status == "connect" {
+			for i := 0; i <= 4; i++ {
+
+				dataKafka := kafka.Consumer()
+
+				if dataKafka == nil {
+					fmt.Println("Null")
+					continue
+				}
+				if i == 0 {
+					log.Println("Kafka 0 =", dataKafka)
+					log.Println(i)
+					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+						log.Print(err)
+					}
+				}
+				if i == 2 {
+					log.Println("Kafka 2 =", dataKafka)
+					log.Println(i)
+					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+						log.Print(err)
+					}
+				}
+				if i == 4 {
+					log.Println("Kafka 4 =", dataKafka)
+					log.Println(i)
+					if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage("Bye bitch")).Do(); err != nil {
+						log.Print(err)
+					}
+				}
+				log.Println("index ", i)
+				log.Println("------------------------------------------------------------------")
+			}
+		}
+		// for linebot.AccountLinkResultOK == "OK" {
+		// 	log.Println("hereh")
+
+		// 	for {
+		// 		dataKafka := kafka.Consumer()
+		// 		if dataKafka == nil {
+		// 			fmt.Println("Null")
+		// 			continue
+		// 		}
+		// 		if dataKafka != nil {
+		// 			log.Println("4556")
+		// 			if _, err := bot.PushMessage("U357dfdc149b28a464a83819e7fedd332", linebot.NewTextMessage(dataKafka.CarID)).Do(); err != nil {
+		// 				log.Print(err)
+		// 			}
+		// 			break
+
+		// 		}
+		// 	}
+
+		// }
 
 		return c.String(http.StatusOK, "OK!")
 	})

@@ -44,15 +44,17 @@ func NewKafkaReader(address string, topic string) *KafkaReader {
 
 // Consumer :
 func (k *KafkaReader) Consumer() *types.DataConsumer {
-	dataKafka := types.DataConsumer{}
-	dataKafkaRead, err := k.reader.ReadMessage(context.Background())
-	if err != nil {
-		return nil
-	}
-	if err := json.Unmarshal(dataKafkaRead.Value, &dataKafka); err != nil {
-		return nil
-	}
-	fmt.Println("Kafka =", dataKafka)
+	for {
+		dataKafka := types.DataConsumer{}
+		dataKafkaRead, err := k.reader.ReadMessage(context.Background())
+		if err != nil {
+			return nil
+		}
+		if err := json.Unmarshal(dataKafkaRead.Value, &dataKafka); err != nil {
+			return nil
+		}
+		fmt.Println("Kafka =", dataKafka)
 
-	return &dataKafka
+		return &dataKafka
+	}
 }
