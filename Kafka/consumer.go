@@ -21,11 +21,13 @@ func NewKafkaReader(address string, topic string) *KafkaReader {
 
 	// อ่านที่ topic 1
 	config := kafka.ReaderConfig{
-		Brokers:     []string{address},
-		Topic:       "KafkaTest",
-		GroupID:     "a4",
-		MaxBytes:    1e3,
-		MinBytes:    1e2,
+		Brokers:  []string{address},
+		Topic:    "HelloKafka",
+		GroupID:  "a4",
+		MaxBytes: 1e3,
+		MinBytes: 1e2,
+		//autoCommit: false,
+		//fromOffset: kafka.LastOffset,
 		StartOffset: kafka.LastOffset,
 	}
 
@@ -34,7 +36,7 @@ func NewKafkaReader(address string, topic string) *KafkaReader {
 	// เขียนที่ topic 2
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers: []string{address},
-		Topic:   "KafkaTest",
+		Topic:   "HelloKafka",
 	})
 
 	fmt.Println("success read")

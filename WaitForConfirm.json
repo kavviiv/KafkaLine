@@ -1,0 +1,40 @@
+{
+    "type": "bubble",
+    "direction": "ltr",
+    "header": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "text": "กำลังตรวจสถานะ",
+          "weight": "bold",
+          "align": "center",
+          "contents": []
+        }
+      ]
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "image",
+          "url": "https://www.flaticon.com/free-icon/sand-clock_889843?term=wait&page=1&position=5&page=1&position=5&related_id=889843&origin=search",
+          "size": "md"
+        },
+        {
+          "type": "text",
+          "text": "ระบบกำลังตรวจสถานะ",
+          "align": "center",
+          "contents": []
+        },
+        {
+          "type": "text",
+          "text": "การเข้าตรวจสภาพรถของท่าน",
+          "align": "center",
+          "contents": []
+        }
+      ]
+    }
+  }
