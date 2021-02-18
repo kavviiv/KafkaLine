@@ -14,7 +14,9 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-var status, UserConfirm string
+var status string
+
+//var UserConfirm string
 
 func main() {
 	err := godotenv.Load()
@@ -30,7 +32,6 @@ func main() {
 	dataKafka := kafka.Consumer()
 	db := database.FetchData()
 	car := dataKafka.CarID
-	//x := dataKafka.CarID
 
 	client := &http.Client{}
 	bot, err := linebot.New(os.Getenv("CHANNEL_SECRET"), os.Getenv("CHANNEL_TOKEN"), linebot.WithHTTPClient(client))
@@ -38,10 +39,13 @@ func main() {
 		log.Fatal("Line bot client ERROR: ", err)
 	}
 
+	//Flex message build
+
+	var UserConfirm string
 	var contents []linebot.FlexComponent
 	var head []linebot.FlexComponent
 	var foot []linebot.FlexComponent
-	//	var action []linebot.Action
+
 	text := linebot.TextComponent{
 		Type:   linebot.FlexComponentTypeText,
 		Align:  "center",
@@ -76,9 +80,8 @@ func main() {
 	foot1 := linebot.ButtonComponent{
 		Type: "button",
 		Action: &linebot.PostbackAction{
-			Label: "ตกลง",
-			Data:  "confirm",
-			//Text:        "ใช่",
+			Label:       "ตกลง",
+			Data:        "confirm",
 			DisplayText: "ยืนยัน",
 		},
 		Gravity: "center",
@@ -112,14 +115,14 @@ func main() {
 	}
 	flexMessage := linebot.NewFlexMessage("ครบกำหนดตรวจสภาพรถ", &bubble)
 
+	// Flex message build
+
 	for _, em := range db {
 		if em.BotStatus == nil {
 		}
 
-		//for true {
 		if em.BotStatus != nil {
 			for *em.BotStatus == "connect" && em.LineUID == dataKafka.LineID {
-				//for true {
 				if dataKafka == nil {
 					continue
 				}
@@ -147,7 +150,7 @@ func main() {
 		  "contents": [
 			{
 			  "type": "text",
-			  "text": "กำลังตรวจสถานะ",
+			  "text": "กำลังตรวจสอบสถานะ",
 			  "weight": "bold",
 			  "align": "center",
 			  "contents": []
@@ -160,12 +163,13 @@ func main() {
 		  "contents": [
 			{
 			  "type": "image",
-			  "url": "https://www.flaticon.com/free-icon/sand-clock_889843?term=wait&page=1&position=5&page=1&position=5&related_id=889843&origin=search",
+			  "url": "https://www.flaticon.com/svg/vstatic/svg/3877/3877432.svg?token=exp=1613626030~hmac=04ffefb049ae3d995f3d52dfc61563fd",
 			  "size": "md"
 			},
 			{
 			  "type": "text",
-			  "text": "ระบบกำลังตรวจสถานะ",
+			  "text": "ระบบกำลังตรวจสอบสถานะ",
+			  "margin": "xxl",
 			  "align": "center",
 			  "contents": []
 			},
@@ -183,8 +187,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	// New Flex Message
-	waitForConfirm := linebot.NewFlexMessage("FlexWithJSON", flexContainer)
+	waitForConfirm := linebot.NewFlexMessage("กำลังตรวจสอบสถานะ", flexContainer)
 
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
@@ -192,7 +195,6 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 	e.POST("/linemessage", func(c echo.Context) error {
-		//log.Println("here")
 		events, err := bot.ParseRequest(c.Request())
 		if err != nil {
 			log.Fatal("Line bot client ERROR: ", err)
@@ -207,13 +209,11 @@ func main() {
 					if g.LineUID == event.Source.UserID {
 						status = "connect"
 						log.Println(status)
-						if _, err := bot.PushMessage(a, linebot.NewTextMessage("Welcome to our service")).Do(); err == nil {
-							//log.Print(err)
+						if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("Welcome to our service")).Do(); err == nil {
 							dbc := database.DBCon()
 							sqlStatement := `UPDATE test SET bot_status = $1 WHERE line_id = $2`
 							_, err = dbc.Exec(sqlStatement, status, a)
 							if err != nil {
-								//w.WriteHeader(http.StatusBadRequest)
 								panic(err)
 							}
 							break
@@ -221,7 +221,6 @@ func main() {
 
 						if g.LineUID != event.Source.UserID {
 							if _, err := bot.PushMessage(event.Source.UserID, linebot.NewTextMessage("You're not connect to our service")).Do(); err != nil {
-								//log.Print(err)
 
 							}
 							break
@@ -242,7 +241,6 @@ func main() {
 				sqlStatement := `UPDATE test SET bot_status = $1 WHERE line_id = $2`
 				_, err = dbc.Exec(sqlStatement, status, event.Source.UserID)
 				if err != nil {
-					//w.WriteHeader(http.StatusBadRequest)
 					panic(err)
 				}
 
@@ -257,9 +255,7 @@ func main() {
 				log.Println(UserConfirm)
 				if _, err := bot.PushMessage(event.Source.UserID, waitForConfirm).Do(); err != nil {
 					log.Print(err)
-
 				}
-
 			}
 
 		}

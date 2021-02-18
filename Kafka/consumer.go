@@ -21,13 +21,11 @@ func NewKafkaReader(address string, topic string) *KafkaReader {
 
 	// อ่านที่ topic 1
 	config := kafka.ReaderConfig{
-		Brokers:  []string{address},
-		Topic:    "HelloKafka",
-		GroupID:  "a4",
-		MaxBytes: 1e3,
-		MinBytes: 1e2,
-		//autoCommit: false,
-		//fromOffset: kafka.LastOffset,
+		Brokers:     []string{address},
+		Topic:       "HelloKafka",
+		GroupID:     "a4",
+		MaxBytes:    1e3,
+		MinBytes:    1e2,
 		StartOffset: kafka.LastOffset,
 	}
 

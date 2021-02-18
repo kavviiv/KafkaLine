@@ -52,13 +52,12 @@ func FetchData() []UserLine {
 	}
 
 	log.Printf("555 %+v\n", data)
-	//dbdata := data
-	//fmt.Printf("666 %+v\n", source)
 	defer db.Close()
 
 	return data
 }
 
+// FetchData2 Compare with kafka :
 func FetchData2() []Data {
 	db := DBCon()
 	defer db.Close()
